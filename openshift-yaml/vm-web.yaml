@@ -5,14 +5,19 @@ metadata:
   labels:
     app: uadb-web
 spec:
-  running: true
+  runStrategy: Always
   template:
     spec:
       domain:
+        resources: # <--- AJOUTÉ : Règle l'erreur de démarrage
+          requests:
+            memory: 1Gi
+          limits:
+            memory: 1Gi
         devices:
           interfaces:
             - name: default
-              masquerade: {} # Utilise le réseau autorisé par la Sandbox
+              masquerade: {}
           disks:
             - disk:
                 bus: virtio
@@ -30,22 +35,22 @@ spec:
         - cloudInitNoCloud:
             userData: |
               #cloud-config
+              user: ubuntu
+              password: 'UadbCloud2024!'
+              chpasswd: { expire: False }
+              ssh_pwauth: True
               hostname: vm-web-uadb
-              packages:
-                - nodejs
-                - npm
-                - git
-              write_files:
-                - content: |
-                    # Votre code server.js sera généré ici
-                  path: /home/ubuntu/app/server.js
               runcmd:
-                # 1. Préparation du dossier de l'application
+                - apt-get update
+                - apt-get install -y nodejs npm
                 - mkdir -p /home/ubuntu/app
                 - cd /home/ubuntu/app
-                # 2. Installation des dépendances
                 - npm init -y
                 - npm install express mysql2
-                # 3. Lancement de l'application en arrière-plan sur le port 3000
-                - nohup node /home/ubuntu/app/server.js > /home/ubuntu/app.log 2>&1 &
+                - |
+                  echo "const express = require('express');
+                  const app = express();
+                  app.get('/', (req, res) => res.send('<h1>UADB - SERVEUR WEB OK</h1>'));
+                  app.listen(3000);" > server.js
+                - nohup node server.js > app.log 2>&1 &
           name: cloudinitdisk
