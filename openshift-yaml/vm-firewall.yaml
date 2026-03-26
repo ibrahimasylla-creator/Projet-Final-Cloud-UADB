@@ -1,29 +1,64 @@
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
 metadata:
-  name: vm1-firewall
+  name: vm-firewall
+  labels:
+    special: firewall-gateway
 spec:
   running: true
   template:
     spec:
       domain:
-        resources:
-          requests:
-            memory: 2Gi
         devices:
           interfaces:
-          - name: dmz-net
-            bridge: {}
-          - name: lan-net
-            bridge: {}
+            - name: nic-public   # Interface 1 : Accès Internet/OpenShift
+              masquerade: {}
+            - name: nic-dmz      # Interface 2 : Vers le réseau Web
+              bridge: {}
+            - name: nic-lan      # Interface 3 : Vers le réseau BD
+              bridge: {}
           disks:
-          - disk:
-              bus: virtio
-            name: containerdisk
+            - disk:
+                bus: virtio
+              name: containerdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
       networks:
-      - name: dmz-net
-        multus:
-          networkName: dmz-network-config
-      - name: lan-net
-        multus:
-          networkName: lan-network-config
+        - name: nic-public
+          pod: {}
+        - name: nic-dmz
+          multus:
+            networkName: dmz-net  # Doit correspondre à votre NetworkAttachmentDefinition
+        - name: nic-lan
+          multus:
+            networkName: lan-net  # Doit correspondre à votre NetworkAttachmentDefinition
+      volumes:
+        - containerDisk:
+            image: quay.io/containerdisks/ubuntu:22.04
+          name: containerdisk
+        - cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: firewall-uadb
+              packages:
+                - iptables
+                - iptables-persistent
+              write_files:
+                - content: |
+                    #!/bin/bash
+                    # Activation du routage
+                    echo 1 > /proc/sys/net/ipv4/ip_forward
+                    
+                    # Règles de base
+                    iptables -F
+                    iptables -t nat -F
+                    iptables -P FORWARD ACCEPT # Pour simplifier la démo, on accepte le forward
+                    
+                    # NAT pour que les VMs internes accèdent à Internet
+                    iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+                  path: /usr/local/bin/setup-router.sh
+                  permissions: '0755'
+              runcmd:
+                - /usr/local/bin/setup-router.sh
+          name: cloudinitdisk

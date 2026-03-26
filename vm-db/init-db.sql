@@ -1,16 +1,24 @@
---Script de configuration MySQL pour la VM3 (LAN)
-CREATE DATABASE IF NOT EXISTS uadb_final_db;
-USE uadb_final_db;
+-- 1. Création de la base de données
+CREATE DATABASE IF NOT EXISTS uadb_cloud_db;
+USE uadb_cloud_db;
 
-CREATE TABLE IF NOT EXISTS inventory (
+-- 2. Création de la table de test pour la démonstration
+CREATE TABLE IF NOT EXISTS status_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100),
-    status VARCHAR(50)
+    event_name VARCHAR(255) NOT NULL,
+    event_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO inventory (name, status) VALUES ('VM-WEB', 'Connected'), ('VM-DB', 'Standalone');
+-- 3. Insertion d'une donnée initiale
+INSERT INTO status_log (event_name) VALUES ('Initialisation du système effectuée');
 
--- Création de l'utilisateur pour le lien avec la VM2
-CREATE USER IF NOT EXISTS 'admin'@'%' IDENTIFIED BY 'uadb2026';
-GRANT ALL PRIVILEGES ON uadb_final_db.* TO 'admin'@'%';
+-- 4. CRÉATION DE L'UTILISATEUR (Étape CRITIQUE pour le réseau)
+-- On autorise l'utilisateur 'user_uadb' à se connecter UNIQUEMENT 
+-- depuis l'IP de la VM-WEB (192.168.100.10) ou depuis le segment DMZ.
+CREATE USER IF NOT EXISTS 'user_uadb'@'192.168.100.10' IDENTIFIED BY 'votre_password_securise';
+
+-- 5. Attribution des privilèges
+GRANT ALL PRIVILEGES ON uadb_cloud_db.* TO 'user_uadb'@'192.168.100.10';
+
+-- 6. Application des changements
 FLUSH PRIVILEGES;

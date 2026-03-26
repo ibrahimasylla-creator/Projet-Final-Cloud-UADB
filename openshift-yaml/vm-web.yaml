@@ -1,24 +1,53 @@
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
 metadata:
-  name: vm2-web
+  name: vm-web
+  annotations:
+    k8s.v1.cni.cncf.io/networks: dmz-net # Connexion au switch virtuel DMZ
 spec:
   running: true
   template:
     spec:
       domain:
-        resources:
-          requests:
-            memory: 2Gi
         devices:
           interfaces:
-          - name: dmz-net
-            bridge: {}
+            - name: default
+              masquerade: {} # Accès internet via OpenShift
+            - name: dmz-nic
+              bridge: {}     # Interface secondaire dans la DMZ
           disks:
-          - disk:
-              bus: virtio
-            name: containerdisk
+            - disk:
+                bus: virtio
+              name: containerdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
       networks:
-      - name: dmz-net
-        multus:
-          networkName: dmz-network-config
+        - name: default
+          pod: {}
+        - name: dmz-nic
+          multus:
+            networkName: dmz-net
+      volumes:
+        - containerDisk:
+            image: quay.io/containerdisks/ubuntu:22.04
+          name: containerdisk
+        - cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: vm-web-uadb
+              packages:
+                - nodejs
+                - npm
+                - curl
+              write_files:
+                - content: |
+                    # Insertion de votre code server.js ici
+                    # (Ou vous pouvez faire un 'git clone' dans runcmd)
+                  path: /home/ubuntu/app/server.js
+              runcmd:
+                - ip addr add 192.168.100.10/24 dev eth1 # Fixer l'IP dans la DMZ
+                - ip link set eth1 up
+                - cd /home/ubuntu/app && npm init -y && npm install express mysql2
+                - nohup node /home/ubuntu/app/server.js > /home/ubuntu/app.log 2>&1 &
+          name: cloudinitdisk
