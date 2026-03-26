@@ -1,13 +1,13 @@
 const express = require('express');
-const mysql = require('mysql2'); // N'oubliez pas d'ajouter mysql2 dans votre package.json
+const mysql = require('mysql2');
 const app = express();
 
-// Configuration de la connexion à la VM3 (LAN)
+// CONFIGURATION MISE À JOUR : On utilise le nom du SERVICE OpenShift
 const dbConfig = {
-    host: '192.168.10.10', // IP statique de votre VM-DB
+    host: 'service-db',        // <--- C'est ici le changement crucial
     user: 'user_uadb',
     password: 'votre_password_securise',
-    database: 'mabase'
+    database: 'uadb_cloud_db'
 };
 
 app.get('/', (req, res) => {
@@ -18,12 +18,13 @@ app.get('/', (req, res) => {
         let dbColor = "";
 
         if (err) {
-            // Si la connexion échoue (Firewall bloque ou service arrêté)
-            dbStatus = "BLOQUÉ OU HORS LIGNE";
+            // Si la connexion échoue
+            dbStatus = "CONNEXION IMPOSSIBLE AU SERVICE-DB";
             dbColor = "#d83b01"; // Rouge
+            console.error('Erreur de connexion MySQL:', err);
         } else {
             // Si la connexion réussit
-            dbStatus = "CONNECTÉ (ACCÈS LAN OK)";
+            dbStatus = "CONNECTÉ AU POD DATABASE (OK)";
             dbColor = "green"; // Vert
             connection.end();
         }
@@ -33,13 +34,13 @@ app.get('/', (req, res) => {
                 <h1 style="color: #0078d4;">UADB - PROJET FINAL CLOUD</h1>
                 <h2 style="color: #333;">Tier 1 : Serveur Web (VM-UBUNTU-WEB)</h2>
                 <div style="background-color: #fff; padding: 15px; border-radius: 10px; border-left: 5px solid #ff9900;">
-                    <p><strong>Réseau :</strong> Zone DMZ (192.168.100.0/24)</p>
+                    <p><strong>Réseau :</strong> Zone DMZ / Pod Network</p>
                     <p><strong>Statut :</strong> <span style="color: green; font-weight: bold;">OPÉRATIONNEL</span></p>
                 </div>
                 <br>
                 <div style="background-color: #fff; padding: 15px; border-radius: 10px; border-left: 5px solid ${dbColor};">
-                    <p><strong>Lien vers Database (LAN) :</strong> <span style="color: ${dbColor}; font-weight: bold;">${dbStatus}</span></p>
-                    <p style="font-size: 0.9em; color: #666;">(Vérification en temps réel via le réseau 192.168.10.0/24)</p>
+                    <p><strong>Lien vers Tier 3 (Pod MySQL) :</strong> <span style="color: ${dbColor}; font-weight: bold;">${dbStatus}</span></p>
+                    <p style="font-size: 0.9em; color: #666;">(Utilisation de la résolution DNS interne d'OpenShift)</p>
                 </div>
             </div>
         `);
@@ -48,6 +49,6 @@ app.get('/', (req, res) => {
 
 app.listen(3000, () => {
     console.log("-----------------------------------------");
-    console.log("SERVEUR DE DÉMO PRÊT SUR LE PORT 3000");
+    console.log("SERVEUR WEB UADB PRÊT SUR LE PORT 3000");
     console.log("-----------------------------------------");
 });
