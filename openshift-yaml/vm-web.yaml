@@ -2,8 +2,8 @@ apiVersion: kubevirt.io/v1
 kind: VirtualMachine
 metadata:
   name: vm-web
-  annotations:
-    k8s.v1.cni.cncf.io/networks: dmz-net # Connexion au switch virtuel DMZ
+  labels:
+    app: uadb-web
 spec:
   running: true
   template:
@@ -12,9 +12,7 @@ spec:
         devices:
           interfaces:
             - name: default
-              masquerade: {} # Accès internet via OpenShift
-            - name: dmz-nic
-              bridge: {}     # Interface secondaire dans la DMZ
+              masquerade: {} # Utilise le réseau autorisé par la Sandbox
           disks:
             - disk:
                 bus: virtio
@@ -25,9 +23,6 @@ spec:
       networks:
         - name: default
           pod: {}
-        - name: dmz-nic
-          multus:
-            networkName: dmz-net
       volumes:
         - containerDisk:
             image: quay.io/containerdisks/ubuntu:22.04
@@ -39,15 +34,18 @@ spec:
               packages:
                 - nodejs
                 - npm
-                - curl
+                - git
               write_files:
                 - content: |
-                    # Insertion de votre code server.js ici
-                    # (Ou vous pouvez faire un 'git clone' dans runcmd)
+                    # Votre code server.js sera généré ici
                   path: /home/ubuntu/app/server.js
               runcmd:
-                - ip addr add 192.168.100.10/24 dev eth1 # Fixer l'IP dans la DMZ
-                - ip link set eth1 up
-                - cd /home/ubuntu/app && npm init -y && npm install express mysql2
+                # 1. Préparation du dossier de l'application
+                - mkdir -p /home/ubuntu/app
+                - cd /home/ubuntu/app
+                # 2. Installation des dépendances
+                - npm init -y
+                - npm install express mysql2
+                # 3. Lancement de l'application en arrière-plan sur le port 3000
                 - nohup node /home/ubuntu/app/server.js > /home/ubuntu/app.log 2>&1 &
           name: cloudinitdisk

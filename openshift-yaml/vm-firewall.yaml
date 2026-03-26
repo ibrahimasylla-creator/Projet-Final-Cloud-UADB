@@ -11,12 +11,8 @@ spec:
       domain:
         devices:
           interfaces:
-            - name: nic-public   # Interface 1 : Accès Internet/OpenShift
-              masquerade: {}
-            - name: nic-dmz      # Interface 2 : Vers le réseau Web
-              bridge: {}
-            - name: nic-lan      # Interface 3 : Vers le réseau BD
-              bridge: {}
+            - name: default
+              masquerade: {} # Interface unique autorisée (Accès Internet/Pod Network)
           disks:
             - disk:
                 bus: virtio
@@ -25,14 +21,8 @@ spec:
                 bus: virtio
               name: cloudinitdisk
       networks:
-        - name: nic-public
+        - name: default
           pod: {}
-        - name: nic-dmz
-          multus:
-            networkName: dmz-net  # Doit correspondre à votre NetworkAttachmentDefinition
-        - name: nic-lan
-          multus:
-            networkName: lan-net  # Doit correspondre à votre NetworkAttachmentDefinition
       volumes:
         - containerDisk:
             image: quay.io/containerdisks/ubuntu:22.04
@@ -47,18 +37,24 @@ spec:
               write_files:
                 - content: |
                     #!/bin/bash
-                    # Activation du routage
+                    # 1. Activation du routage au niveau du noyau
                     echo 1 > /proc/sys/net/ipv4/ip_forward
                     
-                    # Règles de base
+                    # 2. Nettoyage des règles existantes
                     iptables -F
                     iptables -t nat -F
-                    iptables -P FORWARD ACCEPT # Pour simplifier la démo, on accepte le forward
                     
-                    # NAT pour que les VMs internes accèdent à Internet
-                    iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-                  path: /usr/local/bin/setup-router.sh
+                    # 3. Sécurisation : On autorise le trafic établi et le loopback
+                    iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+                    iptables -A INPUT -i lo -j ACCEPT
+                    
+                    # 4. SSH : Autoriser l'administration (Port 22)
+                    iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+                    # 5. Persistance des règles
+                    netfilter-persistent save
+                  path: /usr/local/bin/setup-firewall.sh
                   permissions: '0755'
               runcmd:
-                - /usr/local/bin/setup-router.sh
+                - /usr/local/bin/setup-firewall.sh
           name: cloudinitdisk

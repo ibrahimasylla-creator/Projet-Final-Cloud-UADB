@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-uadb-web
+spec:
+  selector:
+    app: uadb-web # Doit correspondre au label dans votre vm-web.yaml
+  ports:
+    - protocol: TCP
+      port: 80       # Port exposé au public
+      targetPort: 3000 # Port où tourne votre server.js dans la VM
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: route-uadb-web
+spec:
+  to:
+    kind: Service
+    name: service-uadb-web
+  port:
+    targetPort: 80
+  tls:
+    termination: edge # Active le HTTPS automatiquement
