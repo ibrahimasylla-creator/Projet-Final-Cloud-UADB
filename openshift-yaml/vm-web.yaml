@@ -1,0 +1,24 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm2-web
+spec:
+  running: true
+  template:
+    spec:
+      domain:
+        resources:
+          requests:
+            memory: 2Gi
+        devices:
+          interfaces:
+          - name: dmz-net
+            bridge: {}
+          disks:
+          - disk:
+              bus: virtio
+            name: containerdisk
+      networks:
+      - name: dmz-net
+        multus:
+          networkName: dmz-network-config

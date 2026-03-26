@@ -1,0 +1,24 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm3-db
+spec:
+  running: true
+  template:
+    spec:
+      domain:
+        resources:
+          requests:
+            memory: 4Gi # La DB a besoin de plus de RAM
+        devices:
+          interfaces:
+          - name: lan-net
+            bridge: {}
+          disks:
+          - disk:
+              bus: virtio
+            name: containerdisk
+      networks:
+      - name: lan-net
+        multus:
+          networkName: lan-network-config
