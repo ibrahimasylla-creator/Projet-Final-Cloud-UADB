@@ -2,55 +2,53 @@ apiVersion: kubevirt.io/v1
 kind: VirtualMachine
 metadata:
   name: vm-web
-  labels:
-    app: uadb-web
 spec:
   runStrategy: Always
   template:
     spec:
       domain:
-        resources: # <--- AJOUTÉ : Règle l'erreur de démarrage
+        resources:
           requests:
-            memory: 1Gi
+            memory: 800Mi
           limits:
             memory: 1Gi
         devices:
-          interfaces:
-            - name: default
-              masquerade: {}
           disks:
             - disk:
                 bus: virtio
-              name: containerdisk
+              name: containerdisk # On charge l'image directement ici
             - disk:
                 bus: virtio
               name: cloudinitdisk
-      networks:
-        - name: default
-          pod: {}
       volumes:
-        - containerDisk:
+        - containerDisk: # <--- LA SOLUTION EST ICI
             image: quay.io/containerdisks/ubuntu:22.04
           name: containerdisk
         - cloudInitNoCloud:
             userData: |
               #cloud-config
               user: ubuntu
-              password: 'UadbCloud2024!'
-              chpasswd: { expire: False }
-              ssh_pwauth: True
-              hostname: vm-web-uadb
+              password: 'Uadb@2026'
+              chpasswd: { expire: false }
+              ssh_pwauth: true
               runcmd:
+                - [ chage, -M, 99999, ubuntu ]
                 - apt-get update
-                - apt-get install -y nodejs npm
+                - apt-get install -y nginx nodejs npm
                 - mkdir -p /home/ubuntu/app
                 - cd /home/ubuntu/app
                 - npm init -y
-                - npm install express mysql2
+                - npm install express
                 - |
                   echo "const express = require('express');
                   const app = express();
-                  app.get('/', (req, res) => res.send('<h1>UADB - SERVEUR WEB OK</h1>'));
+                  app.get('/', (req, res) => res.send('<h1>VM-WEB UADB READY</h1>'));
                   app.listen(3000);" > server.js
-                - nohup node server.js > app.log 2>&1 &
+                - nohup node server.js > /home/ubuntu/app.log 2>&1 &
+                - |
+                  echo "server {
+                      listen 80;
+                      location / { proxy_pass http://localhost:3000; }
+                  }" > /etc/nginx/sites-available/default
+                - systemctl restart nginx
           name: cloudinitdisk

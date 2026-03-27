@@ -1,27 +1,47 @@
- 
-# Projet Final : Architecture 3-Tiers Virtualisée sur OpenShift
-**Étudiant :** Ibrahim Sylla (UADB)
-**Enseignant :** Dr. BABOU
+PROJET FINAL : ARCHITECTURE 3-TIERS (OPENSHIFT)
+ÉTUDIANT : IBRAHIM SYLLA (UADB)
 
-##  Description du Projet
-Ce projet déploie une infrastructure réseau multi-VM sécurisée composée de :
-- **VM1 (Firewall/Passerelle) :** Gère le routage et la sécurité via iptables.
-- **VM2 (Serveur Web) :** Serveur Node.js exposé en zone DMZ.
-- **VM3 (Base de données) :** Serveur MySQL isolé dans le réseau LAN.
+ENSEIGNANT : DR. BABOU
 
-##  Topologie Réseau
-- **DMZ :** 192.168.100.0/24 (Accès Web)
-- **LAN :** 192.168.10.0/24 (Données sensibles)
+ DESCRIPTION DU PROJET
+DÉPLOIEMENT D'UNE INFRASTRUCTURE RÉSEAU MULTI-VM SÉCURISÉE :
 
+VM1 (FIREWALL) : ROUTAGE ET SÉCURITÉ VIA IPTABLES.
 
+VM2 (WEB) : SERVEUR NODE.JS + NGINX (ZONE DMZ).
 
-##  Structure du Dépôt
-- `/vm-web` : Code source de l'application Node.js.
-- `/vm-db` : Scripts d'initialisation de la base de données.
-- `/network-pfsense` : Configuration des règles de filtrage (iptables).
-- `/openshift-yaml` : Fichiers de configuration pour le déploiement sur OpenShift Virtualization.
+POD-DB (MYSQL) : BASE DE DONNÉES ISOLÉE (ZONE LAN).
 
-##  Installation
-1. Déployer les réseaux DMZ et LAN sur OpenShift.
-2. Appliquer les fichiers YAML dans l'ordre : Firewall -> DB -> Web.
-3. Exécuter `setup-firewall.sh` sur la VM1.
+ TOPOLOGIE RÉSEAU
+ZONE DMZ : 192.168.100.0/24 (ACCÈS WEB PUBLIC).
+
+ZONE LAN : 192.168.10.0/24 (FLUX DE DONNÉES PRIVÉS).
+
+ CONFIGURATION SÉCURITÉ (VM-FIREWALL)
+POLITIQUE DE SÉCURITÉ APPLIQUÉE MANUELLEMENT :
+
+IP FORWARDING : ACTIVÉ.
+
+POLICY FORWARD : DROP (SÉCURITÉ MAXIMALE).
+
+PORT 80 : AUTORISÉ (FLUX HTTP).
+
+PORT 3306 : AUTORISÉ (FLUX MYSQL).
+
+NAT : MASQUERADE SUR L'INTERFACE ENP1S0.
+
+ STRUCTURE DU DÉPÔT
+/OPENSHIFT-YAML : MANIFESTES POUR LE DÉPLOIEMENT FLASH (CONTAINERDISK).
+
+/VM-WEB : CONFIGURATION NGINX ET APP NODE.JS.
+
+/NETWORK-CONFIG : SCRIPTS ET RÈGLES IPTABLES.
+
+ INSTALLATION & VALIDATION
+DÉPLOIEMENT : UTILISATION DE CONTAINERDISK POUR UN LANCEMENT INSTANTANÉ.
+
+CONFIGURATION : EXÉCUTION DES RÈGLES IPTABLES SUR VM1.
+
+TEST RÉSEAU : PING RÉUSSI VERS SERVICE-DB DEPUIS VM2.
+
+VÉRIFICATION : IPTABLES -L -N -V CONFIRME LE FILTRAGE DES PAQUETS.

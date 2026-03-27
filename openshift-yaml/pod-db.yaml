@@ -8,15 +8,22 @@ spec:
   containers:
     - name: mysql
       image: mysql:8.0
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
       env:
         - name: MYSQL_ROOT_PASSWORD
-          value: "uadb_root_pass"
+          value: "Uadb@2026" # <--- Mis à jour
         - name: MYSQL_DATABASE
           value: "uadb_cloud_db"
         - name: MYSQL_USER
           value: "user_uadb"
         - name: MYSQL_PASSWORD
-          value: "votre_password_securise"
+          value: "Uadb@2026" # <--- Mis à jour
       ports:
         - containerPort: 3306
 ---
