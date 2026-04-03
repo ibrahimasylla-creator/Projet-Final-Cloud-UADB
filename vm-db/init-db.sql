@@ -1,24 +1,42 @@
--- 1. Création de la base de données
-CREATE DATABASE IF NOT EXISTS uadb_cloud_db;
-USE uadb_cloud_db;
-
--- 2. Création de la table de test pour la démonstration
-CREATE TABLE IF NOT EXISTS status_log (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    event_name VARCHAR(255) NOT NULL,
-    event_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 3. Insertion d'une donnée initiale
-INSERT INTO status_log (event_name) VALUES ('Initialisation du système effectuée');
-
--- 4. CRÉATION DE L'UTILISATEUR (Étape CRITIQUE pour le réseau)
--- On autorise l'utilisateur 'user_uadb' à se connecter UNIQUEMENT 
--- depuis l'IP de la VM-WEB (192.168.100.10) ou depuis le segment DMZ.
-CREATE USER IF NOT EXISTS 'user_uadb'@'192.168.100.10' IDENTIFIED BY 'votre_password_securise';
-
--- 5. Attribution des privilèges
-GRANT ALL PRIVILEGES ON uadb_cloud_db.* TO 'user_uadb'@'192.168.100.10';
-
--- 6. Application des changements
-FLUSH PRIVILEGES;
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-db
+  labels:
+    tier: database
+spec:
+  containers:
+    - name: mysql
+      image: mysql:8.0
+      # AJOUT ICI : Pour autoriser les connexions du Firewall et de la VM-Web
+      args: ["--bind-address=0.0.0.0"]
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "Uadb@2026"
+        - name: MYSQL_DATABASE
+          value: "uadb_cloud_db"
+        - name: MYSQL_USER
+          value: "user_uadb"
+        - name: MYSQL_PASSWORD
+          value: "Uadb@2026"
+      ports:
+        - containerPort: 3306
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-db
+spec:
+  selector:
+    tier: database
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
